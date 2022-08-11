@@ -1,3 +1,0 @@
-C:/Users/modif/Desktop/360/Lab 3/lab3/out/build/x64-debug/CMakeFiles/lab3.dir
-C:/Users/modif/Desktop/360/Lab 3/lab3/out/build/x64-debug/CMakeFiles/edit_cache.dir
-C:/Users/modif/Desktop/360/Lab 3/lab3/out/build/x64-debug/CMakeFiles/rebuild_cache.dir

@@ -1,3 +1,0 @@
-/mnt/c/Users/modif/Desktop/360/Lab 3/lab3/out/build/linux-debug/CMakeFiles/edit_cache.dir
-/mnt/c/Users/modif/Desktop/360/Lab 3/lab3/out/build/linux-debug/CMakeFiles/rebuild_cache.dir
-/mnt/c/Users/modif/Desktop/360/Lab 3/lab3/out/build/linux-debug/CMakeFiles/lab3.dir
