@@ -1,0 +1,16 @@
+total 396
+-rwxrwxrwx 1 sena sena      0 Jul 31 12:15 CMakeLists.txt
+-rwxrwxrwx 1 sena sena 278250 Jul 31 11:40 Lab 3 - Signals, Pipes, and File Descriptors.pdf
+-rwxrwxrwx 1 sena sena  20336 Jul 31 12:31 asyncWaiting
+-rwxrwxrwx 1 sena sena   2433 Jul 31 12:31 asyncWaiting.c
+drwxrwxrwx 1 sena sena    512 Jul 31 12:16 cmake-build-debug
+-rwxrwxrwx 1 sena sena  19384 Jul 31 12:45 dup2eg
+-rwxrwxrwx 1 sena sena    762 Jul 31 11:40 dup2eg.c
+-rwxrwxrwx 1 sena sena      0 Jul 31 12:45 my.file
+-rwxrwxrwx 1 sena sena  20192 Jul 31 12:35 pipe
+-rwxrwxrwx 1 sena sena   1807 Jul 31 11:40 pipe.c
+-rwxrwxrwx 1 sena sena  20392 Jul 31 12:41 pipeToUpper
+-rwxrwxrwx 1 sena sena   2554 Jul 31 12:41 pipeToUpper.c
+-rwxrwxrwx 1 sena sena    903 Jul 31 11:40 pipedup2.c
+-rwxrwxrwx 1 sena sena  20176 Jul 31 12:12 waiting
+-rwxrwxrwx 1 sena sena   2284 Jul 31 11:40 waiting.c
