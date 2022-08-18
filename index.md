@@ -3,6 +3,12 @@
 ```C
 ```Compile```
 gcc *.c -o * --std=c99 -lpthread
+
+```Compile object file```
+gcc *.c -c -o  *.o
+
+```Link object file```
+gcc *.c -c -o * obj.o
 ```
 
 ## Processes and Threads
