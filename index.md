@@ -54,6 +54,12 @@ https://man7.org/linux/man-pages/man2/open.2.html
 Sockets are like pipes but are bi-directional and can be used for networking. 
 ### Useful Links
 ```
+```Get address info (example of client)```
+https://man7.org/linux/man-pages/man3/getaddrinfo.3.html
+
+```Bind (example of server)```
+https://man7.org/linux/man-pages/man2/bind.2.html
+
 ```TCP Sockets```
 https://www.binarytides.com/socket-programming-c-linux-tutorial/
 ```
