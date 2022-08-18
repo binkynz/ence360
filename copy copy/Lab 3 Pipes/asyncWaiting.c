@@ -9,17 +9,22 @@
 #include <sys/wait.h>   /* defines the wait() system call. */
 #include <signal.h>
 
-/* Function prototypes */
-void waitChild(int sigNum);
+ /* Function prototypes */
 void sighup(); /* routines child will call upon sigtrap */
 void sigint();
 void sigquit();
+
+void waitChild(int sig_num) {
+    int child_status = 0;
+
+    wait(&child_status);
+}
 
 int main(int argc, const char * argv[]) {
     /* storage place for the pid of the child process, and its exit status. */
     pid_t child_pid = 0;
 
-    signal(SIGCHLD, waitChild); /*Register the signal handler - syntax */
+    signal(SIGCHLD, &waitChild); /*Register the signal handler - syntax */
 
     /* fork a child process... */
     child_pid = fork();
@@ -46,29 +51,19 @@ int main(int argc, const char * argv[]) {
         sleep(1); /* Give the child some time to set up its signal handlers */
         kill(child_pid, SIGHUP);
         sleep(3); /* pause for 3 secs */
-
+        
         printf("\nPARENT: sending SIGINT\n\n");
         kill(child_pid, SIGINT);
         sleep(3); /* pause for 3 secs */
-
+        
         printf("\nPARENT: sending SIGQUIT\n\n");
         kill(child_pid, SIGQUIT);
-
+        
         printf("\nPARENT: doing something\n\n");
         sleep(3);
     }
 
     return EXIT_SUCCESS;
-}
-
-void waitChild(int sigNum)
-{
-    signal(sigNum, waitChild); /* reset signal */
-
-    int child_status = 0;
-    wait(&child_status);
-
-    printf("PARENT: child process status: %d\n", child_status);
 }
 
 void sighup() {

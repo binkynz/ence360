@@ -30,10 +30,9 @@ void *run_summation(void *ptr)
 
     for (int i = 0; i < worker->n; ++i) {
         //TODO: make this thread safe!!
+
         pthread_mutex_lock(worker->lock);
-
         (*worker->total)++;
-
         pthread_mutex_unlock(worker->lock);
     }
 
@@ -51,7 +50,7 @@ int main()
     pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
     Worker workers[NUM_THREADS];
 
-    pthread_t thread_ids[NUM_THREADS];
+    pthread_t ids[NUM_THREADS];
 
     for (int i = 0; i < NUM_THREADS; ++i) {
         // What would be the problem declaring Worker w here?
@@ -63,8 +62,7 @@ int main()
         worker->n = N;
 
         //TODO: Make this run in a thread!
-        // run_summation((void*)worker);
-        pthread_create(&thread_ids[i], NULL, run_summation, (void*)worker);
+        pthread_create(&ids[i], NULL, run_summation, (void*)worker);
     }
 
 
@@ -73,9 +71,10 @@ int main()
     // for(i = ...)
       ////////////////////////////////
     for (int i = 0; i < NUM_THREADS; i++)
-        pthread_join(thread_ids[i], NULL);
+        pthread_join(ids[i], NULL);
 
     printf("Final total: %f \n", total);
 
     return 0;
 }
+

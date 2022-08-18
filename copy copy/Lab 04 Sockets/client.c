@@ -3,16 +3,15 @@
 #include <string.h> 
 #include <netdb.h> 
 #include <unistd.h>
+
 #include <pthread.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#include <sys/socket.h>
-
 
 #define MAXDATASIZE 1024 // max buffer size 
-#define SERVER_PORT 2001
+#define SERVER_PORT 2000
 
 int client_socket(char *hostname)
 {
@@ -37,35 +36,27 @@ int client_socket(char *hostname)
 
     ///////////////////////////////
 
+    if ((sockfd = socket(AF_INET , SOCK_STREAM , 0)) < 0) {
+        perror("Socket");
+        exit(0);
+    }
+
     memset(&their_addrinfo, 0, sizeof(their_addrinfo));
 
     their_addrinfo.ai_family = AF_INET;
-    their_addrinfo.ai_socktype = SOCK_STREAM;
+    their_addrinfo.ai_socktype = SOCK_STREAM ;
 
-    int info = getaddrinfo(hostname, port, &their_addrinfo, &their_addr);
-    if (info != 0) {
-        printf("ERROR: Could not get addr info\n");
-        exit(EXIT_FAILURE);
+    if (getaddrinfo(hostname, port, &their_addrinfo, &their_addr) != 0) {
+        perror("Addr info");
+        exit(0);
     }
 
-    struct addrinfo* addr = NULL;
-    for (addr = their_addr;  addr != NULL; addr = addr->ai_next) {
-        sockfd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-        if (sockfd == -1)
-            continue;
-
-        if (connect(sockfd, addr->ai_addr, addr->ai_addrlen) != -1)
-            break;
-
-        close(sockfd);
+    if (connect(sockfd, their_addr->ai_addr, their_addr->ai_addrlen) < 0) {
+        perror("Connect");
+        exit(0);
     }
 
     freeaddrinfo(their_addr);
-
-    if (addr == NULL) {
-        printf("ERROR: Could not connect to socket\n");
-        exit(EXIT_FAILURE);
-    }
 
     return sockfd;
 }
@@ -83,7 +74,6 @@ void* recieve_msg(void* arg) {
 
     return NULL;
 }
-
 
 int main(int argc, char *argv[])
 {

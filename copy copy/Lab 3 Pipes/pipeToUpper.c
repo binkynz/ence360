@@ -18,7 +18,7 @@ int child_status, size;
 #define INP 1
 #define OUTP 0
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
 
     if (argc != 2) {
         fprintf(stderr, "Usage: %s message\n", argv[0]);
@@ -48,9 +48,12 @@ int main(int argc, char* argv[]) {
         /* Read from parent */
         if (read(parent_to_child[OUTP], message, BUFSIZ) != -1) {
             printf("CHILD: Recieved %s\n", message);
+
             for (int i = 0; i < strlen(message); i++)
                 message[i] = toupper(message[i]);
+
             write(child_to_parent[INP], message, strlen(message));
+            printf("CHILD: Sent %s\n", message);
         }
         else {
             perror("Read");
@@ -68,6 +71,7 @@ int main(int argc, char* argv[]) {
 
         if (write(parent_to_child[INP], argv[1], strlen(argv[1])) != -1) {
             printf("PARENT: Sent %s\n", argv[1]);
+
             read(child_to_parent[OUTP], message, BUFSIZ);
             printf("PARENT: Recieved %s\n", message);
         }

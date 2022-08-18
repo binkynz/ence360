@@ -6,18 +6,17 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include <sys/socket.h>
-
 #include "list.h"
 
 #define MAXDATASIZE 1024 // max buffer size 
-#define SERVER_PORT 2001
+#define SERVER_PORT 2000
 
-static node_t* list = NULL;
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+static list_t* sockets = NULL;
 
 int listen_on(int port)
 {
+
     int s = socket(AF_INET, SOCK_STREAM, 0);
 
     struct sockaddr_in sa;
@@ -40,28 +39,32 @@ int listen_on(int port)
     return s;
 }
 
+
 int accept_connection(int s) {
-    int sockfd;
-    struct sockaddr_in client_addr;
-    socklen_t client_len;
 
-    client_addr.sin_family = AF_INET;
-    client_addr.sin_addr.s_addr = INADDR_ANY;
 
-    client_len = sizeof(client_addr);
+    /////////////////////////////////////////////
+    // TODO: Implement in terms of 'accept'
 
-    sockfd = accept(s, (struct sockaddr*)&client_addr, &client_len);
+    /////////////////////////////////////////////  
+
+    struct sockaddr_in sa;
+    socklen_t sa_size = sizeof(sa);
+
+    int sockfd = accept(s, (struct sockaddr*)&sa, &sa_size);
     if (sockfd == -1) {
         perror("accept");
-        exit(1);
+        exit(0);
     }
-
-    printf("Accepted: %d\n", sockfd);
 
     return sockfd;
 }
 
+
 void handle_request(int msgsock) {
+    ///////////////////
+
+      // This initial code reads a single message (and ignores it!)
     char buffer[MAXDATASIZE];
     int num_read = 0;
 
@@ -69,67 +72,65 @@ void handle_request(int msgsock) {
         num_read = read(msgsock, buffer, MAXDATASIZE - 1);
         buffer[num_read] = '\0';
 
-        write(msgsock, buffer, num_read);
+        printf("client (%d): %s\n", msgsock, buffer);
 
-        printf("client: %s\n", buffer);
+        write(msgsock, buffer, strlen(buffer));
     } while (num_read > 0);
-
-    close(msgsock);
 }
 
+
+// handle request by forking a new process
 void handle_fork(int msgsock) {
+
+    //TODO: run this line inside a forked child process
+
     // Be very careful to close all sockets used, 
     // and exit any processes or threads which aren't used
-    // Note that sockets open BEFORE a fork() are open in BOTH parent/child
+      // Note that sockets open BEFORE a fork() are open in BOTH parent/child
 
-    ///////////////////////////////////////////
-
-    if (fork() == 0) {
+    if (!fork()) {
         handle_request(msgsock);
-    }
-    else {
+        close(msgsock);
+    } else {
         close(msgsock);
     }
+
+    ///////////////////////////////////////////
 }
 
-void* handle_thread_request(void* arg) {
+void handle_request_mul(void* msgsock) {
     char buffer[MAXDATASIZE];
     int num_read = 0;
-    int msgsock = *(int*)arg;
+
+    int sockfd = *(int*)msgsock;
 
     do {
-        num_read = read(msgsock, buffer, MAXDATASIZE - 1);
+        num_read = read(sockfd, buffer, MAXDATASIZE - 1);
         buffer[num_read] = '\0';
 
         pthread_mutex_lock(&lock);
-        for (node_t* item = list; item != NULL; item = item->next) {
-            write(item->value, buffer, num_read);
-            printf("client %d: %s\n", item->value, buffer);
+        for (list_t* node = sockets; node != NULL; node = node->next) {
+            write(node->value, buffer, strlen(buffer));
+            printf("echo to client (%d): %s\n", node->value, buffer);
         }
         pthread_mutex_unlock(&lock);
     } while (num_read > 0);
 
     pthread_mutex_lock(&lock);
-    list_remove(&list, msgsock);
-    close(msgsock);
+    list_remove(&sockets, sockfd);
     pthread_mutex_unlock(&lock);
-
-    return NULL;
 }
 
 void handle_thread(int msgsock) {
     pthread_t id;
 
     pthread_mutex_lock(&lock);
-    if (list == NULL)
-        list = list_new(msgsock);
-    else
-        list_add(list, msgsock);
+    list_append(&sockets, msgsock);
     pthread_mutex_unlock(&lock);
 
-    if (pthread_create(&id, NULL, handle_thread_request, (void*)&msgsock) != 0) {
-        perror("create");
-        exit(1);
+    if (pthread_create(&id, NULL, (void*)&handle_request_mul, &msgsock) != 0) {
+        perror("thread");
+        close(msgsock);
     }
 }
 
@@ -148,7 +149,6 @@ int main(int argc, char *argv[]) {
         handle_thread(msgsock);
     }
 
-    list_free(list);
     close(s);
     exit(0);
 }

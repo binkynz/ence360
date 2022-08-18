@@ -1,0 +1,15 @@
+total 400
+-rwxrwxrwx 1 sena sena 278250 Aug 18 20:45 Lab 3 - Signals, Pipes, and File Descriptors.pdf
+-rwxrwxrwx 1 sena sena  17224 Aug 18 20:53 asyncWaiting
+-rwxrwxrwx 1 sena sena   2312 Aug 18 20:51 asyncWaiting.c
+-rwxrwxrwx 1 sena sena  16872 Aug 18 21:00 dup2eg
+-rwxrwxrwx 1 sena sena    762 Aug 18 20:45 dup2eg.c
+-rwxrwxrwx 1 sena sena  16872 Aug 18 20:59 dup2sort
+-rwxrwxrwx 1 sena sena    776 Aug 18 20:59 dup2sort.c
+-rwxrwxrwx 1 sena sena      0 Aug 18 21:00 my.file
+-rwxrwxrwx 1 sena sena   1807 Aug 18 20:45 pipe.c
+-rwxrwxrwx 1 sena sena  17384 Aug 18 20:57 pipeToUpper
+-rwxrwxrwx 1 sena sena   2171 Aug 18 20:57 pipeToUpper.c
+-rwxrwxrwx 1 sena sena    903 Aug 18 20:45 pipedup2.c
+-rwxrwxrwx 1 sena sena  17184 Aug 18 20:48 waiting
+-rwxrwxrwx 1 sena sena   2284 Aug 18 20:45 waiting.c
