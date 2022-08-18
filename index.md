@@ -5,7 +5,7 @@
 gcc *.c -o * --std=c99 -lpthread
 
 ```Compile object file```
-gcc *.c -c -o  *.o
+gcc *.c -c -o *.o
 
 ```Link object file```
 gcc *.c -o * obj.o
