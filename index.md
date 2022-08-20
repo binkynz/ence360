@@ -12,6 +12,9 @@ gcc *.c -o * obj.o
 
 ```Valgrind```
 valgrind --leak-check=full ./*
+
+```Debug Segmentation Faults```
+https://stackoverflow.com/a/2876374/19171327
 ```
 
 ## Processes and Threads
