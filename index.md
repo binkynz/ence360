@@ -65,6 +65,7 @@ https://man7.org/linux/man-pages/man3/getaddrinfo.3.html
 
 ```Bind (example of server)```
 https://man7.org/linux/man-pages/man2/bind.2.html
+https://www.gta.ufrj.br/ensino/eel878/sockets/sockaddr_inman.html
 
 ```TCP Sockets```
 https://www.binarytides.com/socket-programming-c-linux-tutorial/
