@@ -9,6 +9,9 @@ gcc *.c -c -o *.o
 
 ```Link object file```
 gcc *.c -o * obj.o
+
+```Valgrind```
+valgrind --leak-check=full ./*
 ```
 
 ## Processes and Threads
