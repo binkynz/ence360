@@ -75,6 +75,9 @@ https://www.gta.ufrj.br/ensino/eel878/sockets/sockaddr_inman.html
 
 ```TCP Sockets```
 https://www.binarytides.com/socket-programming-c-linux-tutorial/
+
+```INADDR_ANY```
+https://stackoverflow.com/a/16510000/19171327
 ```
 
 ## Makefile
