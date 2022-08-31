@@ -183,21 +183,13 @@ void async_child_wait(int signum)
 // created pipes to communicate between signal handler and poll
 void init_self_poll(void)
 {
-	int flags;
-
 	if (pipe(self_pipe_fds) == -1) // create a pipe
-		error_exit("pipe"); 
+		error_exit("pipe");
 
-	if ((flags = fcntl(self_pipe_fds[0], F_GETFL)) == -1) // get the output end flags
-		error_exit("fcntl_getfl");
-	flags |= O_NONBLOCK;							   // add non blocking flag
-	if (fcntl(self_pipe_fds[0], F_SETFL, flags) == -1) // set the output end as non-blocking
+	if (fcntl(self_pipe_fds[0], F_SETFL, O_NONBLOCK) == -1) // set the output end as non-blocking
 		error_exit("fcntl_setfl");
 
-	if ((flags = fcntl(self_pipe_fds[1], F_GETFL)) == -1) // get the input end flags
-		error_exit("fcntl_getfl");
-	flags |= O_NONBLOCK;							   // add non blocking flag
-	if (fcntl(self_pipe_fds[1], F_SETFL, flags) == -1) // set the input end as non-blocking
+	if (fcntl(self_pipe_fds[1], F_SETFL, O_NONBLOCK) == -1) // set the input end as non-blocking
 		error_exit("fcntl_setfl");
 
 	char data[NUM_CHILDREN] = {0};						   // create a byte array for NUM_CHILDREN bytes
