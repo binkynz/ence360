@@ -116,12 +116,13 @@ void async_child_wait(int signum)
 	write(self_pipe_fds[1], ".", 1); // we cant really error check this
 }
 
+// created pipes to communicate between signal handler and poll
 void init_self_poll(void)
 {
 	int flags;
 
-	if (pipe(self_pipe_fds) == -1)
-		error_exit("pipe"); // create a pipe
+	if (pipe(self_pipe_fds) == -1) // create a pipe
+		error_exit("pipe");
 
 	if ((flags = fcntl(self_pipe_fds[0], F_GETFL)) == -1) // get the output end flags
 		error_exit("fcntl_getfl");
@@ -140,6 +141,7 @@ void init_self_poll(void)
 		error_exit("write");
 }
 
+// uses polling to wait for a process to be available
 bool self_poll(void)
 {
 	// create a poll type variable to read from a fd
