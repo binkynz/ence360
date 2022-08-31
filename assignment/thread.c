@@ -23,16 +23,16 @@ typedef struct {
 } worker_t;
 
 double gaussian(double x) {
-	return exp(-(x*x)/2) / (sqrt(2 * M_PI));
+	return exp(-(x * x) / 2) / (sqrt(2 * M_PI));
 }
 
 double charge_decay(double x) {
 	if (x < 0) 
 		return 0;
 	else if (x < 1)
-		return 1 - exp(-5*x);
+		return 1 - exp(-5 * x);
 	else
-		return exp(-(x-1));
+		return exp(-(x - 1));
 }
 
 // integrate using the trapezoid method. 
@@ -49,8 +49,10 @@ void* integrate_trap(void* arg) {
 		double smallx = worker->range_start + i * dx;
 		double bigx = worker->range_start + (i + 1) * dx;
 
-		area += dx * (func(smallx) + func(bigx)) / 2; // multiply area by dx once at the end. 
+		area += func(smallx) + func(bigx);
 	}
+
+	area = dx * area / 2;
 
 	pthread_mutex_lock(worker->lock);
 	*worker->area += area;
@@ -67,41 +69,44 @@ bool get_valid_input(double* start, double* end, size_t* num_steps, size_t* func
 	return (num_read == 4 && *end >= *start && *num_steps > 0 && *func_id < NUM_FUNCS);
 }
 
+void spawn_child_threads(worker_t workers[], pthread_mutex_t* lock, double range_start, double range_end, size_t num_steps, size_t func_id) {
+	double area = 0;
+		
+	double dx = (range_end - range_start) / NUM_THREADS;
+	size_t steps_per_thread = num_steps / NUM_THREADS;
+
+	pthread_t thread_ids[NUM_THREADS];
+
+	for (size_t i = 0; i < NUM_THREADS; i++) {
+		worker_t* worker = &workers[i];
+
+		worker->area = &area;
+		worker->lock = lock;
+		worker->range_start = range_start + (i * dx);
+		worker->range_end = range_start + (i + 1) * dx;
+		worker->num_steps = steps_per_thread;
+		worker->func_id = func_id;
+
+		pthread_create(&thread_ids[i], NULL, integrate_trap, worker);
+	}
+
+	for (size_t i = 0; i < NUM_THREADS; i++)
+		pthread_join(thread_ids[i], NULL);
+
+	printf("The integral of function %zu in range %g to %g is %.10g\n", 
+		func_id, range_start, range_end, area);
+}
+
 int main(void) {
 	double range_start, range_end;
 	size_t num_steps, func_id;
 
+	worker_t workers[NUM_THREADS];
+	
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-	worker_t workers[NUM_THREADS];
-	pthread_t thread_ids[NUM_THREADS];
-	while (get_valid_input(&range_start, &range_end, &num_steps, &func_id)) {
-		double area = 0;
-		
-		double range_size = range_end - range_start;
-		size_t steps_per_thread = num_steps / NUM_THREADS;
-		double dx = range_size / NUM_THREADS;
+	while (get_valid_input(&range_start, &range_end, &num_steps, &func_id))
+		spawn_child_threads(workers, &lock, range_start, range_end, num_steps, func_id);
 
-		for (size_t i = 0; i < NUM_THREADS; i++) {
-			worker_t* worker = &workers[i];
-
-			worker->area = &area;
-			worker->lock = &lock;
-
-			worker->range_start = range_start + (i * dx);
-			worker->range_end = range_start + (i + 1) * dx;
-			worker->num_steps = steps_per_thread;
-			worker->func_id = func_id;
-
-			pthread_create(&thread_ids[i], NULL, integrate_trap, worker);
-		}
-
-		for (size_t i = 0; i < NUM_THREADS; i++)
-			pthread_join(thread_ids[i], NULL);
-
-		printf("The integral of function %zu in range %g to %g is %.10g\n", 
-			func_id, range_start, range_end, area);
-	}
-
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
