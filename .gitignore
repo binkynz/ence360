@@ -58,3 +58,4 @@ dkms.conf
 # Custom
 out/
 .vs/
+donot/
