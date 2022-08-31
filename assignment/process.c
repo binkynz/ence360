@@ -4,15 +4,16 @@
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
-#include <signal.h>
 #include <fcntl.h>
-#include <sys/stat.h>
-#include <semaphore.h>
+#include <signal.h>
+#include <poll.h>
+#include <errno.h>
 #include <sys/wait.h>
 
 #define NUM_FUNCS 3
 #define NUM_CHILDREN 4
-#define CHILDREN_NAME "/children_sem"
+
+#define error_exit(prompt) do { perror(prompt); exit(EXIT_FAILURE); } while (0)
 
 // define the signatures of the math functions
 double gaussian(double);
@@ -22,8 +23,8 @@ double charge_decay(double);
 typedef double math_func_t(double);
 static math_func_t* const funcs[NUM_FUNCS] = {&sin, &gaussian, &charge_decay};
 
-// declare counter of child processes
-static volatile sig_atomic_t num_children = 0;
+// decalre a pipe to "self-pipe" to parent process
+static int self_pipe_fds[2] = {0};
 
 // gaussian function
 double gaussian(double x) {
@@ -60,47 +61,30 @@ double integrate_trap(math_func_t* func, double range_start, double range_end, s
 
 // get a valid input from stdin
 bool get_valid_input(double* start, double* end, size_t* num_steps, size_t* func_id) {
-	printf("Query: [start] [end] [num_steps] [func_id]\n"); // print the query
+	 // print the query
+	if (printf("Query: [start] [end] [num_steps] [func_id]\n") < 0)
+		error_exit("printf");
 
 	size_t num_read = scanf("%lf %lf %zu %zu", start, end, num_steps, func_id); // read from stdin and grab the values
 
 	return (num_read == 4 && *end >= *start && *num_steps > 0 && *func_id < NUM_FUNCS); // sanity check
 }
 
-// create a named semaphore
-sem_t* init_named_sem(void) {
-    /*
-        create a named semaphore with name "CHILDREN_NAME"
-        , check for the existence of the semaphore
-        , allow read and write permissions
-        and an initial value of "NUM_CHILDREN"
-    */
-	sem_t* children = sem_open(CHILDREN_NAME, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR, NUM_CHILDREN);
-
-	/*
-		"The semaphore is destroyed once all other processes that have the semaphore open
-       	close it." - https://man7.org/linux/man-pages/man3/sem_unlink.3.html
-
-		i.e. immediately issue the semaphore to be destroyed once all processes have closed it
-	*/
-	sem_unlink(CHILDREN_NAME);
-
-	return children; // return the semaphore
-}
-
 // spawn a child process to handle the integration
-void spawn_child_process(sem_t* children, double range_start, double range_end, size_t num_steps, size_t func_id) {
-	if (fork()) // ensure we are the child process
-		return;
+void spawn_child_process(double range_start, double range_end, size_t num_steps, size_t func_id) {
+	int pid = fork(); // create a child process
+	if (pid == -1) perror("fork");
+	else if (pid != 0) return; // parent process does not belong here
+
+	// close the pipes in the child processes as theyre only for the parent
+	if (close(self_pipe_fds[0]) == -1) error_exit("close");
+	if (close(self_pipe_fds[1]) == -1) error_exit("close");
 
 	double area = integrate_trap(funcs[func_id], range_start, range_end, num_steps); // do the integration
 
 	// print the result
-	printf("The integral of function %zu in range %g to %g is %.10g\n", 
-		func_id, range_start, range_end, area);
-
-	sem_post(children); // increment the children semaphore to allow another process to be spawned
-	sem_close(children); // close the child processes access to the semaphore
+	if (printf("The integral of function %zu in range %g to %g is %.10g\n", func_id, range_start, range_end, area) < 0)
+		error_exit("printf");
 
 	exit(EXIT_SUCCESS); // finished
 }
@@ -111,7 +95,47 @@ void async_child_wait(int signum) {
 
 	wait(NULL); // acknowledge/wait for the child's death
 
-	num_children--; // notify main loop that a child has been completely removed
+	// write one byte to the same process (non-blocking)
+	write(self_pipe_fds[1], ".", 1); // we cant really error check this
+}
+
+void init_self_poll(void) {
+	int flags;
+
+	if (pipe(self_pipe_fds) == -1) error_exit("pipe"); // create a pipe
+
+	if ((flags = fcntl(self_pipe_fds[0], F_GETFL)) == -1) error_exit("fcntl_getfl"); // get the output end flags
+	flags |= O_NONBLOCK; // add non blocking flag
+	if (fcntl(self_pipe_fds[0], F_SETFL, flags) == -1) error_exit("fcntl_setfl"); // set the output end as non-blocking
+
+	if ((flags = fcntl(self_pipe_fds[1], F_GETFL)) == -1) error_exit("fcntl_getfl"); // get the input end flags
+	flags |= O_NONBLOCK; // add non blocking flag
+	if (fcntl(self_pipe_fds[1], F_SETFL, flags) == -1) error_exit("fcntl_setfl"); // set the input end as non-blocking
+
+	char data[NUM_CHILDREN] = {0}; // create a byte array for NUM_CHILDREN bytes
+	if (write(self_pipe_fds[1], data, NUM_CHILDREN) == -1) error_exit("write"); // fill pipe with NUM_CHILDREN bytes
+}
+
+bool self_poll(void) {
+	// create a poll type variable to read from a fd
+	struct pollfd pollfd = {
+        .fd = self_pipe_fds[0],
+        .events = POLLIN,
+		.revents = 0
+    };
+
+	// store the return value of the poll
+	int poll_ret;
+	while ((poll_ret = poll(&pollfd, 1, -1)) == -1 && errno == EINTR); // continue polling if poll was interrupted
+
+	// if something else went wrong
+	if (poll_ret == -1) error_exit("poll");
+
+	// read the byte from the buffer (non-blocking)
+	char discard;
+	if (read(pollfd.fd, &discard, 1) == -1) error_exit("read");
+
+	return true; // finished
 }
 
 // entry point of the program
@@ -120,24 +144,19 @@ int main(void) {
 	double range_start, range_end;
 	size_t num_steps, func_id;
 
-	sem_t* children = init_named_sem(); // create the named semaphore
+	init_self_poll(); // init file descriptors for self-polling
 
-	signal(SIGCHLD, async_child_wait); // create a signal to listen for child process's exiting
+	if (signal(SIGCHLD, async_child_wait) == SIG_ERR) error_exit("signal"); // create a signal to listen for child process's exiting
 
-    // wait for a child process to be available
-	while (!sem_wait(children)) {
-		while (num_children == NUM_CHILDREN); // a VERY short loop to ENSURE a child process has COMPLETELY exited
-
-		if (!get_valid_input(&range_start, &range_end, &num_steps, &func_id)) // check for valid input
-			break;
-
-		num_children++;
-		spawn_child_process(children, range_start, range_end, num_steps, func_id); // spawn a child process
-	}
+    // wait for a child process to be available and check for valid input
+	while (self_poll() && get_valid_input(&range_start, &range_end, &num_steps, &func_id))
+		spawn_child_process(range_start, range_end, num_steps, func_id); // spawn a child process
 
 	while (wait(NULL) > 0); // (safety) wait for all child processes to finish (if any)
 
-	sem_close(children); // close parent process's access to the named semaphore, destroying it
+	// close the pipes
+	if (close(self_pipe_fds[0]) == -1) error_exit("close");
+	if (close(self_pipe_fds[1]) == -1) error_exit("close");
 
 	exit(EXIT_SUCCESS); // finished
 }
