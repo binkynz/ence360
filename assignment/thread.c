@@ -6,7 +6,7 @@
 #include <pthread.h>
 
 #define NUM_FUNCS 3	  // number of math functions
-#define NUM_THREADS 4 // number of threads that can be created
+#define NUM_THREADS 4 // number of threads that can be created (MUST be > 0)
 
 // declare a macro to handle exceptions
 #define error_exit(prompt)  \
@@ -30,7 +30,8 @@ typedef struct
 	double *area;
 	pthread_mutex_t *lock;
 
-	double range_start, range_end;
+	double range_start, dx;
+	size_t start_step, incr_step;
 	size_t num_steps, func_id;
 } worker_t;
 
@@ -56,21 +57,18 @@ void *integrate_trap(void *arg)
 {
 	worker_t *worker = (worker_t *)arg; // grab the worker argument
 
-	double range_size = worker->range_end - worker->range_start; // the size of the integral
-	double dx = range_size / worker->num_steps;					 // the integral increment amount
-
 	math_func_t *func = funcs[worker->func_id]; // the function to integrate
 
-	double area = 0;							   // the area of the integral
-	for (size_t i = 0; i < worker->num_steps; i++) // iterate over all steps in the integral
+	double area = 0;																   // the area of the integral
+	for (size_t i = worker->start_step; i < worker->num_steps; i += worker->incr_step) // iterate over all steps in the integral
 	{
-		double smallx = worker->range_start + i * dx;	  // the left-x value
-		double bigx = worker->range_start + (i + 1) * dx; // the right-x value
+		double smallx = worker->range_start + i * worker->dx;	  // the left-x value
+		double bigx = worker->range_start + (i + 1) * worker->dx; // the right-x value
 
 		area += func(smallx) + func(bigx); // the sum of the function at the x values
 	}
 
-	area = dx * area / 2; // finish the area calculation
+	area = worker->dx * area / 2; // finish the area calculation
 
 	if (pthread_mutex_lock(worker->lock) != 0) // acquire lock
 		error_exit("mutex_lock");
@@ -96,16 +94,11 @@ bool get_valid_input(double *start, double *end, size_t *num_steps, size_t *func
 }
 
 // spawn child threads to perform the integration
-void spawn_child_threads(worker_t workers[], pthread_mutex_t *lock, double range_start, double range_end, size_t num_steps, size_t func_id)
+void spawn_child_threads(worker_t workers[], pthread_mutex_t *lock, double *area, double range_start, double range_end, size_t num_steps, size_t func_id)
 {
-	double area = 0; // the total area
+	*area = 0; // clear the area value
 
-	double dx = (range_end - range_start) / NUM_THREADS; // the "step" size of each sub-integral
-	size_t steps_per_thread = num_steps / NUM_THREADS;	 // the number of steps for each sub-integral
-
-	// if the number of steps is not a multiple of the request
-	if (num_steps % NUM_THREADS != 0)
-		steps_per_thread += 1; // add an extra step (rather have higher accuracy than less)
+	double dx = (range_end - range_start) / num_steps; // the "step" size of each sub-integral
 
 	pthread_t thread_ids[NUM_THREADS]; // store the thread ids
 
@@ -114,11 +107,13 @@ void spawn_child_threads(worker_t workers[], pthread_mutex_t *lock, double range
 	{
 		worker_t *worker = &workers[i];
 
-		worker->area = &area;
+		worker->area = area;
 		worker->lock = lock;
-		worker->range_start = range_start + (i * dx);
-		worker->range_end = range_start + (i + 1) * dx;
-		worker->num_steps = steps_per_thread;
+		worker->range_start = range_start;
+		worker->dx = dx;
+		worker->start_step = i;
+		worker->incr_step = NUM_THREADS;
+		worker->num_steps = num_steps;
 		worker->func_id = func_id;
 
 		if (pthread_create(&thread_ids[i], NULL, integrate_trap, worker) != 0) // spawn a thread in the integrate_trap with the worker initiated above
@@ -131,13 +126,16 @@ void spawn_child_threads(worker_t workers[], pthread_mutex_t *lock, double range
 			error_exit("pthread_join");
 
 	// print the result
-	if (printf("The integral of function %zu in range %g to %g is %.10g\n", func_id, range_start, range_end, area) < 0)
+	if (printf("The integral of function %zu in range %g to %g is %.10g\n", func_id, range_start, range_end, *area) < 0)
 		error_exit("printf");
 }
 
 // entry point of the program
 int main(void)
 {
+	// we MUST define area in main...
+	double area;
+
 	// define variables populated by stdin
 	double range_start, range_end;
 	size_t num_steps, func_id;
@@ -148,7 +146,7 @@ int main(void)
 
 	// spawn the child threads
 	while (get_valid_input(&range_start, &range_end, &num_steps, &func_id))
-		spawn_child_threads(workers, &lock, range_start, range_end, num_steps, func_id);
+		spawn_child_threads(workers, &lock, &area, range_start, range_end, num_steps, func_id);
 
 	exit(EXIT_SUCCESS); // finished
 }

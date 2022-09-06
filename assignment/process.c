@@ -109,7 +109,7 @@ void spawn_child_process(double range_start, double range_end, size_t num_steps,
 // asynchronously wait for a child process to exit
 void async_child_wait(int signum)
 {
-	signal(SIGCHLD, async_child_wait); // re-intantiate the signal
+	signal(SIGCHLD, async_child_wait); // re-instantiate the signal
 
 	wait(NULL); // acknowledge/wait for the child's death
 
@@ -123,6 +123,10 @@ void init_self_poll(void)
 	if (pipe(self_pipe_fds) == -1) // create a pipe
 		error_exit("pipe");
 
+	/*
+		we do not care about the other flags on linux when calling fcntl
+		i.e. O_APPEND, O_ASYNC, O_DIRECT, and O_NOATIME
+	*/
 	if (fcntl(self_pipe_fds[0], F_SETFL, O_NONBLOCK) == -1) // set the output end as non-blocking
 		error_exit("fcntl_setfl");
 
