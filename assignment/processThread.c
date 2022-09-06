@@ -149,6 +149,9 @@ void spawn_child_process(double range_start, double range_end, size_t num_steps,
 	else if (pid != 0) // parent process does not belong here
 		return;
 
+	if (close(STDIN_FILENO) == -1) // close stdin (important when stdin's fd is redirected to a file)
+		error_exit("close");
+
 	// close the pipes in the child processes as theyre only for the parent
 	if (close(self_pipe_fds[0]) == -1)
 		error_exit("close");

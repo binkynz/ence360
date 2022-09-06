@@ -91,6 +91,9 @@ void spawn_child_process(double range_start, double range_end, size_t num_steps,
 	else if (pid != 0) // parent process does not belong here
 		return;
 
+	if (close(STDIN_FILENO) == -1) // close stdin (important when stdin's fd is redirected to a file)
+		error_exit("close");
+
 	// close the pipes in the child processes as theyre only for the parent
 	if (close(self_pipe_fds[0]) == -1)
 		error_exit("close");
@@ -178,7 +181,7 @@ int main(void)
 	while (self_poll() && get_valid_input(&range_start, &range_end, &num_steps, &func_id))
 		spawn_child_process(range_start, range_end, num_steps, func_id); // spawn a child process
 
-	while (wait(NULL) > 0) // (safety) wait for all child processes to finish (if any)
+	while (wait(NULL) != -1) // (safety) wait for all child processes to finish (if any)
 		;
 
 	// close the pipes
