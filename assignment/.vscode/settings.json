@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "unistd.h": "c",
-        "math.h": "c"
+        "math.h": "c",
+        "syscall.h": "c"
     }
 }
