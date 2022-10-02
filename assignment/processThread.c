@@ -184,6 +184,10 @@ void init_self_poll(void)
 	if (pipe(self_pipe_fds) == -1) // create a pipe
 		error_exit("pipe");
 
+	/*
+		we do not care about the other flags on linux when calling fcntl
+		i.e. O_APPEND, O_ASYNC, O_DIRECT, and O_NOATIME
+	*/
 	if (fcntl(self_pipe_fds[0], F_SETFL, O_NONBLOCK) == -1) // set the output end as non-blocking
 		error_exit("fcntl_setfl");
 
