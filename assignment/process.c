@@ -22,6 +22,14 @@
 		exit(EXIT_FAILURE); \
 	} while (0)
 
+// declare a macro to handle child exceptions
+#define error_child_exit(prompt) \
+	do                           \
+	{                            \
+		perror(prompt);          \
+		_exit(EXIT_FAILURE);     \
+	} while (0)
+
 // define the signatures of the math functions
 double gaussian(double);
 double charge_decay(double);
@@ -85,11 +93,6 @@ bool get_valid_input(double *start, double *end, size_t *num_steps, size_t *func
 // spawn a child process to handle the integration
 void spawn_child_process(double range_start, double range_end, size_t num_steps, size_t func_id)
 {
-	if (fflush(stdout) != 0) // flush stdout (important when stdout's fd is redirected to a file)
-		error_exit("fflush");
-	if (fflush(stdin) != 0) // flush stdin (important when stdin's fd is redirected to a file)
-		error_exit("fflush");
-
 	int pid = fork(); // create a child process
 	if (pid == -1)
 		perror("fork");
@@ -98,17 +101,17 @@ void spawn_child_process(double range_start, double range_end, size_t num_steps,
 
 	// close the pipes in the child processes as theyre only for the parent
 	if (close(self_pipe_fds[0]) == -1)
-		error_exit("close");
+		error_child_exit("close");
 	if (close(self_pipe_fds[1]) == -1)
-		error_exit("close");
+		error_child_exit("close");
 
 	double area = integrate_trap(funcs[func_id], range_start, range_end, num_steps); // do the integration
 
 	// print the result
 	if (printf("The integral of function %zu in range %g to %g is %.10g\n", func_id, range_start, range_end, area) < 0)
-		error_exit("printf");
+		error_child_exit("printf");
 
-	exit(EXIT_SUCCESS); // finished
+	_exit(EXIT_SUCCESS); // finished
 }
 
 // asynchronously wait for a child process to exit
