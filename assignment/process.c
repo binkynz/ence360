@@ -85,7 +85,9 @@ bool get_valid_input(double *start, double *end, size_t *num_steps, size_t *func
 // spawn a child process to handle the integration
 void spawn_child_process(double range_start, double range_end, size_t num_steps, size_t func_id)
 {
-	if (fflush(NULL) != 0) // flush all open streams
+	if (fflush(stdout) != 0) // flush stdout (important when stdout's fd is redirected to a file)
+		error_exit("fflush");
+	if (fflush(stdin) != 0) // flush stdin (important when stdin's fd is redirected to a file)
 		error_exit("fflush");
 
 	int pid = fork(); // create a child process
