@@ -143,14 +143,14 @@ void spawn_child_threads(worker_t workers[], pthread_mutex_t *lock, double range
 // spawn a child process to handle the integration
 void spawn_child_process(double range_start, double range_end, size_t num_steps, size_t func_id)
 {
+	if (fflush(NULL) != 0) // flush all open streams
+		error_exit("fflush");
+
 	int pid = fork(); // create a child process
 	if (pid == -1)
 		perror("fork");
 	else if (pid != 0) // parent process does not belong here
 		return;
-
-	if (close(STDIN_FILENO) == -1) // close stdin (important when stdin's fd is redirected to a file)
-		error_exit("close");
 
 	// close the pipes in the child processes as theyre only for the parent
 	if (close(self_pipe_fds[0]) == -1)

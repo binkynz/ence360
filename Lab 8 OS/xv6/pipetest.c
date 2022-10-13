@@ -43,7 +43,10 @@ int main(void)
         close(pw[1]);
 
         while ((n = read(pw[0], buf, sizeof(buf))) > 0)
+        {
+            printf(stdout, "%d\n", n);
             printf(stdout, buf);
+        }
 
         close(pw[0]);
     }
