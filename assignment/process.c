@@ -95,7 +95,7 @@ void spawn_child_process(double range_start, double range_end, size_t num_steps,
 {
 	int pid = fork(); // create a child process
 	if (pid == -1)
-		perror("fork");
+		error_exit("fork");
 	else if (pid != 0) // parent process does not belong here
 		return;
 
