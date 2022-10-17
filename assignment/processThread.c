@@ -124,8 +124,8 @@ void spawn_child_threads(worker_t workers[], pthread_mutex_t *lock, double range
 	for (size_t i = 0; i < NUM_THREADS; i++)
 	{
 		worker_t *worker = &workers[i];
-		
-		worker->area = area; // (double) area reference
+
+		worker->area = &area; // (double) area reference
 		worker->lock = lock; // mutex lock
 		worker->range_start = range_start; // start of integral
 		worker->dx = dx; // integral step size
