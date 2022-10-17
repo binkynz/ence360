@@ -77,8 +77,8 @@ void *integrate_trap(void *arg)
 
 	math_func_t *func = funcs[worker->func_id]; // the function to integrate
 
-	double area = 0;																   // the area of the integral
-	for (size_t i = worker->start_step; i < worker->num_steps; i += worker->incr_step) // iterate over all steps in the integral
+	double area = 0;																   // the area of the (sub) integral
+	for (size_t i = worker->start_step; i < worker->num_steps; i += worker->incr_step) // iterate over all steps in the (sub) integral
 	{
 		double smallx = worker->range_start + i * worker->dx;	  // the left-x value
 		double bigx = worker->range_start + (i + 1) * worker->dx; // the right-x value
@@ -124,15 +124,15 @@ void spawn_child_threads(worker_t workers[], pthread_mutex_t *lock, double range
 	for (size_t i = 0; i < NUM_THREADS; i++)
 	{
 		worker_t *worker = &workers[i];
-
-		worker->area = &area;
-		worker->lock = lock;
-		worker->range_start = range_start;
-		worker->dx = dx;
-		worker->start_step = i;
-		worker->incr_step = NUM_THREADS;
-		worker->num_steps = num_steps;
-		worker->func_id = func_id;
+		
+		worker->area = area; // (double) area reference
+		worker->lock = lock; // mutex lock
+		worker->range_start = range_start; // start of integral
+		worker->dx = dx; // integral step size
+		worker->start_step = i; // start slice
+		worker->incr_step = NUM_THREADS; // number of slices to skip
+		worker->num_steps = num_steps; // total number of slices
+		worker->func_id = func_id; // function id
 
 		if (pthread_create(&thread_ids[i], NULL, integrate_trap, worker) != 0) // spawn a thread in the integrate_trap with the worker initiated above
 			error_child_exit("pthread_create");
