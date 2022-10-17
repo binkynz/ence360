@@ -27,12 +27,12 @@ static math_func_t *const funcs[NUM_FUNCS] = {&sin, &gaussian, &charge_decay};
 // create a struct to pass to threads
 typedef struct
 {
-	double *area;
-	pthread_mutex_t *lock;
+	double *area; // the total area of the integral
+	pthread_mutex_t *lock;  // the mutex lock to protect the area
 
-	double range_start, dx;
-	size_t start_step, incr_step;
-	size_t num_steps, func_id;
+	double range_start, dx; // the start range, and delta x
+	size_t start_step, incr_step; // the start slice, and slice increment amount
+	size_t num_steps, func_id; // the number of slices, and the (integral) function id
 } worker_t;
 
 // gaussian function
